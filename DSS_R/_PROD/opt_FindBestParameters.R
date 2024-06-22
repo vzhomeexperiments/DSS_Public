@@ -85,39 +85,43 @@ DF_Pars <- readr::read_csv(file.path(path_T1_tf, "ParameterLog9142101.csv"),
                                          "Buy_True",
                                          "Sell_True"))
 
+
 DF_Pars$OrderStartTime <- lubridate::ymd_hms(DF_Pars$OrderStartTime)
 
 # Combine columns from both datasets
-matched_combined <- inner_join(DF_Pars_filtered, DFT1, by = c("OrderStartTime", "TicketNumber"))
+matched_combined <- inner_join(DF_Pars, DFT1, by = c("OrderStartTime", "TicketNumber"))
 
 # Group by StartHour and any other selected parameters, calculate summary statistics
 summary <- matched_combined %>%
-  group_by(StartHour) %>% # or group_by(StartHour, Par1) if more unique combinations of optimization
+  group_by(StartHour, UseMAFilter) %>% # or group_by(StartHour, Par1) if more unique combinations of optimization
   summarize(
     MaxProfit = max(Profit),
-    TotalProfit = sum(Profit),
+    PnL = sum(Profit),
     NumRows = n(), # Calculate the number of rows in each StartHour group
-    ProfitFactor = ifelse(TotalProfit != 0, TotalProfit / sum(abs(Profit)), NA) # Calculate profit factor with a check for zero sum of Profit
-  ) %>%
-  arrange(desc(TotalProfit)) # Sort by MaxProfit column in descending order
+    # Calculate profit factor with a check for zero sum of Profit
+    ProfitFactor = util_profit_factor(Profit))  %>%
+  arrange(desc(PnL)) # Sort by PnL column in descending order
 
 # Find the best parameter StartHour
 # Extract the StartHour value from the top row of the summary dataframe
 #' test start_hour <- 7
 start_hour <- summary$StartHour[1]
+use_ma <- summary$UseMAFilter[1]
 
-# Filter DF_Pars based on the extracted StartHour value
-DF_Res <- DF_Pars %>%
-  filter(StartHour == start_hour) %>% 
-  head(1)
 
-# Find the element containing "StartHour"
+# Find the elements containing "StartHour" and "UseMAFilter"
 index <- grep("StartHour=", DF_presets)
+index1 <- grep("UseMAFilter=", DF_presets)
 
-# Replace the value after = sign with the new value found earlier in start_hour
+# Replace the value after = sign with the new value found earlier
 
 if (length(index) > 0) {
   DF_presets[index] <- gsub("=\\d+", paste0("=", start_hour), DF_presets[index])
+}
+
+if (length(index) > 0) {
+  DF_presets[index1] <- gsub("UseMAFilter=(TRUE|FALSE|true|false)",
+                             paste0("UseMAFilter=", use_ma), DF_presets[index1])
 }
 
 
@@ -125,6 +129,52 @@ if (length(index) > 0) {
 # test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
 write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D.set'))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Read Robot settings from the folder tester 
+DF_presets_tf <- read_lines(file.path(path_T1_te, 'Falcon_D.set'))
+
+# Find the elements containing "StartHour" and "UseMAFilter"
+index <- grep("StartHour=", DF_presets_tf)
+index1 <- grep("UseMAFilter=", DF_presets_tf)
+
+# Replace the value after = sign with the new value found earlier
+
+if (length(index) > 0) {
+  DF_presets_tf[index] <- gsub("=\\d+", paste0("=", start_hour), DF_presets_tf[index])
+}
+
+if (length(index) > 0) {
+  DF_presets_tf[index1] <- gsub("=\\d+",
+                             paste0("=", as.integer(use_ma)), DF_presets_tf[index1])
+}
+
+# Write file back
+# test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
+write_lines(DF_presets_tf, file.path(path_T1_te, 'Falcon_D.set'))
 
 # Erase files from the tester\files folder which was eventually used earlier
 # Specify the paths to the files you want to remove
@@ -135,3 +185,6 @@ file2 <- file.path(path_T1_tf, "ParameterLog9142101.csv")
 if (file.exists(file1)) { file.remove(file1)}
 if (file.exists(file2)) { file.remove(file2)}
 
+
+
+# Read and update Robot settings in templates
