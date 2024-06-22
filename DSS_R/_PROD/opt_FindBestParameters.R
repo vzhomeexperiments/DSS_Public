@@ -87,24 +87,12 @@ DF_Pars <- readr::read_csv(file.path(path_T1_tf, "ParameterLog9142101.csv"),
 
 DF_Pars$OrderStartTime <- lubridate::ymd_hms(DF_Pars$OrderStartTime)
 
-
-# Add a flag column to indicate the source of the row (DF_Pars or DFT1)
-DF_Pars$Source <- "DF_Pars"
-DFT1$Source <- "DFT1"
-
-# Remove the extra last row for each combination in the StartHour column from DF_Pars
-DF_Pars_filtered <- DF_Pars %>%
-  group_by(StartHour) %>% # or group_by(StartHour, Par1) if more unique combinations of optimization
-  filter(row_number() < n()) %>%
-  ungroup() %>%
-  select(-Source)
-
 # Combine columns from both datasets
 matched_combined <- inner_join(DF_Pars_filtered, DFT1, by = c("OrderStartTime", "TicketNumber"))
 
 # Group by StartHour and any other selected parameters, calculate summary statistics
 summary <- matched_combined %>%
-  group_by(StartHour) %>%
+  group_by(StartHour) %>% # or group_by(StartHour, Par1) if more unique combinations of optimization
   summarize(
     MaxProfit = max(Profit),
     TotalProfit = sum(Profit),
