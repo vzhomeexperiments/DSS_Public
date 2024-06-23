@@ -37,12 +37,12 @@ library(lubridate)
 # Define terminals path addresses, from where we are going to read/write data
 # -------------------------
 # terminal 1 path *** make sure to customize this path
-path_T1 <- normalizePath(Sys.getenv('PATH_T1'), winslash = '/')
-path_T1_E <- normalizePath(Sys.getenv('PATH_T1_E'), winslash = '/')
-path_T1_I <- normalizePath(Sys.getenv('PATH_T1_I'), winslash = '/')
-path_T1_P <- normalizePath(Sys.getenv('PATH_T1_P'), winslash = '/')
-path_T1_te <- normalizePath(Sys.getenv('PATH_T1_te'), winslash = '/')
-path_T1_tf <- normalizePath(Sys.getenv('PATH_T1_tf'), winslash = '/')
+path_T1 <- normalizePath(Sys.getenv('PATH_T3'), winslash = '/')
+path_T1_E <- normalizePath(Sys.getenv('PATH_T3_E'), winslash = '/')
+path_T1_I <- normalizePath(Sys.getenv('PATH_T3_I'), winslash = '/')
+path_T1_P <- normalizePath(Sys.getenv('PATH_T3_P'), winslash = '/')
+path_T1_te <- normalizePath(Sys.getenv('PATH_T3_te'), winslash = '/')
+path_T1_tf <- normalizePath(Sys.getenv('PATH_T3_tf'), winslash = '/')
 
 
 
@@ -67,10 +67,10 @@ DF_presets <- read_lines(file.path(path_T1_P, 'Falcon_D.set'))
 #Sys.sleep(30)
 
 # Read order results
-DFT1 <- try(import_data(path_T1_tf, "OrdersResultsT1.csv"), silent = TRUE)
+DFT1 <- try(import_data(path_T1_tf, "OrdersResultsT3.csv"), silent = TRUE)
 
 # Read log with corresponding parameters
-DF_Pars <- readr::read_csv(file.path(path_T1_tf, "ParameterLog9142101.csv"), 
+DF_Pars <- readr::read_csv(file.path(path_T1_tf, "ParameterLog9142301.csv"), 
                            col_names = c("MagicNumber",
                                          "TicketNumber",
                                          "OrderStartTime",
@@ -176,14 +176,42 @@ if (length(index) > 0) {
 # test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
 write_lines(DF_presets_tf, file.path(path_T1_te, 'Falcon_D.set'))
 
+
+# Read file with template from the folder templates
+DF_presets_tp <- read_lines(file.path("C:/Program Files (x86)/FxPro - Terminal3/templates",
+                                      'Falcon_D_GBPUSD.tpl'))
+
+# Find the elements containing "StartHour" and "UseMAFilter"
+index <- grep("StartHour=", DF_presets_tp)
+index1 <- grep("UseMAFilter=", DF_presets_tp)
+
+# Replace the value after = sign with the new value found earlier
+
+if (length(index) > 0) {
+  DF_presets_tp[index] <- gsub("=\\d+", paste0("=", start_hour), DF_presets_tp[index])
+}
+
+if (length(index) > 0) {
+  DF_presets_tp[index1] <- gsub("UseMAFilter=(TRUE|FALSE|true|false)",
+                             paste0("UseMAFilter=", use_ma), DF_presets_tp[index1])
+}
+
+# Write file back
+# test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
+write_lines(DF_presets_tp, file.path("C:/Program Files (x86)/FxPro - Terminal3/templates",
+                                     'Falcon_D_GBPUSD.tpl'))
+
+
 # Erase files from the tester\files folder which was eventually used earlier
 # Specify the paths to the files you want to remove
-file1 <- file.path(path_T1_tf, "OrdersResultsT1.csv")
-file2 <- file.path(path_T1_tf, "ParameterLog9142101.csv")
+file1 <- file.path(path_T1_tf, "OrdersResultsT3.csv")
+file2 <- file.path(path_T1_tf, "ParameterLog9142301.csv")
+file3 <- file.path(path_T1_te, "history", "GBPUSD60_2.fxt")
 
 # If any of the files exist, remove them
 if (file.exists(file1)) { file.remove(file1)}
 if (file.exists(file2)) { file.remove(file2)}
+if (file.exists(file3)) { file.remove(file3)}
 
 
 
