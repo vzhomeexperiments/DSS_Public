@@ -6,6 +6,26 @@
 #
 # Make sure to setup Environmental Variables, see script set_environment.R
 #
+# Function to find the file based on the numeric code and return the file path
+find_file_with_code <- function(files, code_to_find) {
+  
+  
+  for (file in files) {
+    # Read the file lines into a character vector
+    lines <- read_lines(file)
+    
+    # Find the line containing the numeric code
+    code_line_index <- which(grepl(code_to_find, lines))
+    
+    if (length(code_line_index) > 0) {
+      message("Numeric code found in file: ", file)
+      return(file)
+    }
+  }
+  
+  message("Numeric code not found in any file.")
+  return(NULL)
+}
 # Main idea to implement:
 #' 1. MT4 robot writes key parameters during optimization passes 
 #' 2. MT4 robot also writes order trade results
@@ -43,7 +63,9 @@ path_T1_I <- normalizePath(Sys.getenv('PATH_T3_I'), winslash = '/')
 path_T1_P <- normalizePath(Sys.getenv('PATH_T3_P'), winslash = '/')
 path_T1_te <- normalizePath(Sys.getenv('PATH_T3_te'), winslash = '/')
 path_T1_tf <- normalizePath(Sys.getenv('PATH_T3_tf'), winslash = '/')
-
+# we modify path to have the file with the profiles
+path_T1_pr <- sub("MQL4/Files$", "profiles", path_T1)
+path_T1_pr <- file.path(path_T1_pr, "default")
 
 
 #path to user repo:
@@ -109,6 +131,10 @@ start_hour <- summary$StartHour[1]
 use_ma <- summary$UseMAFilter[1]
 
 
+### ================ Update parameters in MT4
+
+# A. In the .set file sandbox
+
 # Find the elements containing "StartHour" and "UseMAFilter"
 index <- grep("StartHour=", DF_presets)
 index1 <- grep("UseMAFilter=", DF_presets)
@@ -151,7 +177,7 @@ write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D.set'))
 
 
 
-
+# B. In the .set file /tester (will be used for backtesting)
 
 
 # Read Robot settings from the folder tester 
@@ -176,6 +202,8 @@ if (length(index) > 0) {
 # test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
 write_lines(DF_presets_tf, file.path(path_T1_te, 'Falcon_D.set'))
 
+
+# D. In the .tpl file /templates (investigation)
 
 # Read file with template from the folder templates
 DF_presets_tp <- read_lines(file.path("C:/Program Files (x86)/FxPro - Terminal3/templates",
@@ -202,6 +230,43 @@ write_lines(DF_presets_tp, file.path("C:/Program Files (x86)/FxPro - Terminal3/t
                                      'Falcon_D_GBPUSD.tpl'))
 
 
+# E. In the .tpl file /profiles (investigation)
+
+# there are several files each representing chart setup
+# one file is the right one, we read all files and only use the one we identified
+
+files_chr <- list.files(path = path_T1_pr, all.files = TRUE,
+                        pattern = ".chr", full.names = TRUE)
+
+code_to_find <- 9142301
+
+# find the path to the file we want to modify code
+file_i_need <- find_file_with_code(files = files_chr, code_to_find)
+
+
+# Read file with template from the folder templates
+V_settings <- read_lines(file_i_need)
+
+# Find the elements containing "StartHour" and "UseMAFilter"
+index <- grep("StartHour=", V_settings)
+index1 <- grep("UseMAFilter=", V_settings)
+
+# Replace the value after = sign with the new value found earlier
+
+if (length(index) > 0) {
+  V_settings[index] <- gsub("=\\d+", paste0("=", start_hour), V_settings[index])
+}
+
+if (length(index) > 0) {
+  V_settings[index1] <- gsub("UseMAFilter=(TRUE|FALSE|true|false)",
+                                paste0("UseMAFilter=", use_ma), V_settings[index1])
+}
+
+# Write file back
+# test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
+write_lines(V_settings, file_i_need)
+
+
 # Erase files from the tester\files folder which was eventually used earlier
 # Specify the paths to the files you want to remove
 file1 <- file.path(path_T1_tf, "OrdersResultsT3.csv")
@@ -216,3 +281,7 @@ if (file.exists(file3)) { file.remove(file3)}
 
 
 # Read and update Robot settings in templates
+
+
+
+
