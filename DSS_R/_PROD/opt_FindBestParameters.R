@@ -52,7 +52,8 @@ library(magrittr)
 library(lazytrade)
 library(lubridate)
 
-
+#record time when the script starts to run
+time_start <- Sys.time()
 # -------------------------
 # Define terminals path addresses, from where we are going to read/write data
 # -------------------------
@@ -66,7 +67,9 @@ path_T1_tf <- normalizePath(Sys.getenv('PATH_T3_tf'), winslash = '/')
 # we modify path to have the file with the profiles
 path_T1_pr <- sub("MQL4/Files$", "profiles", path_T1)
 path_T1_pr <- file.path(path_T1_pr, "default")
-
+# path to cmd startup to start MT4 terminals
+path_cmd <- normalizePath(Sys.getenv('PATH_STUP'), winslash = '/')
+path_cmd <- file.path(path_cmd, "MetaTraderAutoLaunch.cmd")
 
 #path to user repo:
 path_user <- normalizePath(Sys.getenv('PATH_DSS'), winslash = '/')
@@ -80,10 +83,16 @@ DF_presets <- read_lines(file.path(path_T1_P, 'Falcon_D.set'))
 
 # Find new parameters by optimization (launch the bat script from R)
 # Specify the path to your batch script
-#batch_script_path <- file.path(path_dss, "FALCON_D/AUTO_BACKTEST", "FalconDKillOptimizeAndAutoLaunch.bat")
+batch_script_path <- file.path(path_dss, "FALCON_D/AUTO_BACKTEST", "FalconDKillOptimizeAndAutoLaunch.bat")
+
+# Example: Temporarily disabling the firewall
+#system("netsh advfirewall set allprofiles state off")
 
 # Launch the batch script
-#system(batch_script_path, wait = TRUE)
+system(batch_script_path, wait = TRUE)
+
+# Re-enable the firewall
+#system("netsh advfirewall set allprofiles state on")
 
 # sleep 30 seconds to allow it to run ?
 #Sys.sleep(30)
@@ -154,27 +163,6 @@ if (length(index) > 0) {
 # Write file back
 # test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
 write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D.set'))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # B. In the .set file /tester (will be used for backtesting)
@@ -280,8 +268,14 @@ if (file.exists(file3)) { file.remove(file3)}
 
 
 
-# Read and update Robot settings in templates
+# Start up terminals using cmd file in startup folder
+# Use shell() to run the script through CMD with explicit quoting
+result <- shell(paste("cmd.exe /c", shQuote(path_cmd)), intern = TRUE)
 
+print(result)
 
+#calculate total time difference in seconds
+time_end_M60 <- Sys.time()
+time_M60 <- difftime(time_end_M60,time_start,units="sec")
 
 
