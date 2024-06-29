@@ -43,7 +43,9 @@ path_T1_P <- normalizePath(Sys.getenv('PATH_T3_P'), winslash = '/')
 path_T1_te <- normalizePath(Sys.getenv('PATH_T3_te'), winslash = '/')
 path_T1_tf <- normalizePath(Sys.getenv('PATH_T3_tf'), winslash = '/')
 
-
+# path to cmd startup to start MT4 terminals
+path_cmd <- normalizePath(Sys.getenv('PATH_STUP'), winslash = '/')
+path_cmd <- file.path(path_cmd, "MetaTraderAutoLaunch.cmd")
 
 #path to user repo:
 path_user <- normalizePath(Sys.getenv('PATH_DSS'), winslash = '/')
@@ -54,10 +56,10 @@ path_dss <- normalizePath(Sys.getenv('PATH_DSS_Repo'), winslash = '/')
 
 # Find backtest results (launch the bat script from R)
 # Specify the path to your batch script
-#batch_script_path <- file.path(path_dss, "FALCON_D/AUTO_BACKTEST", "FalconDKillBacktestAndAutoLaunch.bat")
+batch_script_path <- file.path(path_dss, "FALCON_D/AUTO_BACKTEST", "FalconDKillBacktestAndAutoLaunch.bat")
 
 # Launch the batch script
-#system(batch_script_path, wait = TRUE)
+system(batch_script_path, wait = TRUE)
 
 # sleep 30 seconds to allow it to run ?
 #Sys.sleep(30)
@@ -93,4 +95,8 @@ if (file.exists(file1)) { file.remove(file1)}
 if (file.exists(file2)) { file.remove(file2)}
 if (file.exists(file3)) { file.remove(file3)}
 
+# Start up terminals using cmd file in startup folder
+# Use shell() to run the script through CMD with explicit quoting
+result <- shell(paste("cmd.exe /c", shQuote(path_cmd)), intern = TRUE)
 
+print(result)
