@@ -6,26 +6,7 @@
 #
 # Make sure to setup Environmental Variables, see script set_environment.R
 #
-# Function to find the file based on the numeric code and return the file path
-find_file_with_code <- function(files, code_to_find) {
-  
-  
-  for (file in files) {
-    # Read the file lines into a character vector
-    lines <- read_lines(file)
-    
-    # Find the line containing the numeric code
-    code_line_index <- which(grepl(code_to_find, lines))
-    
-    if (length(code_line_index) > 0) {
-      message("Numeric code found in file: ", file)
-      return(file)
-    }
-  }
-  
-  message("Numeric code not found in any file.")
-  return(NULL)
-}
+
 # Main idea to implement:
 #' 1. MT4 robot writes key parameters during optimization passes 
 #' 2. MT4 robot also writes order trade results
@@ -67,6 +48,9 @@ path_T1_tf <- normalizePath(Sys.getenv('PATH_T3_tf'), winslash = '/')
 # we modify path to have the file with the profiles
 path_T1_pr <- sub("MQL4/Files$", "profiles", path_T1)
 path_T1_pr <- file.path(path_T1_pr, "default")
+# we modify path to have the file with the templates
+path_T1_tmp <- sub("MQL4/Files$", "templates", path_T1)
+
 # path to cmd startup to start MT4 terminals
 path_cmd <- normalizePath(Sys.getenv('PATH_STUP'), winslash = '/')
 path_cmd <- file.path(path_cmd, "MetaTraderAutoLaunch.cmd")
@@ -76,10 +60,6 @@ path_user <- normalizePath(Sys.getenv('PATH_DSS'), winslash = '/')
 
 #path to folder with bat script
 path_dss <- normalizePath(Sys.getenv('PATH_DSS_Repo'), winslash = '/')
-
-# Read parameters of the robot, Robot settings are in C:\Program Files (x86)\FxPro - Terminal1\MQL4\Presets
-DF_presets <- read_lines(file.path(path_T1_P, 'Falcon_D.set'))
-
 
 # Find new parameters by optimization (launch the bat script from R)
 # Specify the path to your batch script
@@ -141,82 +121,54 @@ use_ma <- summary$UseMAFilter[1]
 
 
 ### ================ Update parameters in MT4
+# Read parameters of the robot, 
+# Robot settings are in C:\Program Files (x86)\FxPro - Terminal1\MQL4\Presets
+# DF_presets <- read_lines(file.path(path_T1_P, 'Falcon_D.set'))
 
 # A. In the .set file sandbox
+file_i_need <- util_find_file_with_code(files = file.path(path_T1_P, 'Falcon_D.set'),
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "StartHour",
+                                        v_values = start_hour)
 
-# Find the elements containing "StartHour" and "UseMAFilter"
-index <- grep("StartHour=", DF_presets)
-index1 <- grep("UseMAFilter=", DF_presets)
+file_i_need <- util_find_file_with_code(files = file.path(path_T1_P, 'Falcon_D.set'),
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "UseMAFilter",
+                                        v_values = use_ma)
 
-# Replace the value after = sign with the new value found earlier
-
-if (length(index) > 0) {
-  DF_presets[index] <- gsub("=\\d+", paste0("=", start_hour), DF_presets[index])
-}
-
-if (length(index) > 0) {
-  DF_presets[index1] <- gsub("UseMAFilter=(TRUE|FALSE|true|false)",
-                             paste0("UseMAFilter=", use_ma), DF_presets[index1])
-}
-
-
-# Write file back
-# test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
-write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D.set'))
 
 
 # B. In the .set file /tester (will be used for backtesting)
+# DF_presets_tf <- read_lines(file.path(path_T1_te, 'Falcon_D.set'))
+file_i_need <- util_find_file_with_code(files = file.path(path_T1_te, 'Falcon_D.set'),
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "StartHour",
+                                        v_values = start_hour)
 
-
-# Read Robot settings from the folder tester 
-DF_presets_tf <- read_lines(file.path(path_T1_te, 'Falcon_D.set'))
-
-# Find the elements containing "StartHour" and "UseMAFilter"
-index <- grep("StartHour=", DF_presets_tf)
-index1 <- grep("UseMAFilter=", DF_presets_tf)
-
-# Replace the value after = sign with the new value found earlier
-
-if (length(index) > 0) {
-  DF_presets_tf[index] <- gsub("=\\d+", paste0("=", start_hour), DF_presets_tf[index])
-}
-
-if (length(index) > 0) {
-  DF_presets_tf[index1] <- gsub("=\\d+",
-                             paste0("=", as.integer(use_ma)), DF_presets_tf[index1])
-}
-
-# Write file back
-# test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
-write_lines(DF_presets_tf, file.path(path_T1_te, 'Falcon_D.set'))
+file_i_need <- util_find_file_with_code(files = file.path(path_T1_te, 'Falcon_D.set'),
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "UseMAFilter",
+                                        v_values = as.integer(use_ma))
 
 
 # D. In the .tpl file /templates (investigation)
+#DF_presets_tp <- read_lines(file.path("C:/Program Files (x86)/FxPro - Terminal3/templates",
+#                                      'Falcon_D_GBPUSD.tpl'))
+file_i_need <- util_find_file_with_code(files = file.path(path_T1_tmp, 'Falcon_D_GBPUSD.tpl'),
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "StartHour",
+                                        v_values = start_hour)
 
-# Read file with template from the folder templates
-DF_presets_tp <- read_lines(file.path("C:/Program Files (x86)/FxPro - Terminal3/templates",
-                                      'Falcon_D_GBPUSD.tpl'))
-
-# Find the elements containing "StartHour" and "UseMAFilter"
-index <- grep("StartHour=", DF_presets_tp)
-index1 <- grep("UseMAFilter=", DF_presets_tp)
-
-# Replace the value after = sign with the new value found earlier
-
-if (length(index) > 0) {
-  DF_presets_tp[index] <- gsub("=\\d+", paste0("=", start_hour), DF_presets_tp[index])
-}
-
-if (length(index) > 0) {
-  DF_presets_tp[index1] <- gsub("UseMAFilter=(TRUE|FALSE|true|false)",
-                             paste0("UseMAFilter=", use_ma), DF_presets_tp[index1])
-}
-
-# Write file back
-# test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
-write_lines(DF_presets_tp, file.path("C:/Program Files (x86)/FxPro - Terminal3/templates",
-                                     'Falcon_D_GBPUSD.tpl'))
-
+file_i_need <- util_find_file_with_code(files = file.path(path_T1_tmp, 'Falcon_D_GBPUSD.tpl'),
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "UseMAFilter",
+                                        v_values = use_ma)
 
 # E. In the .tpl file /profiles (investigation)
 
@@ -226,33 +178,18 @@ write_lines(DF_presets_tp, file.path("C:/Program Files (x86)/FxPro - Terminal3/t
 files_chr <- list.files(path = path_T1_pr, all.files = TRUE,
                         pattern = ".chr", full.names = TRUE)
 
-code_to_find <- 9142301
+file_i_need <- util_find_file_with_code(files = files_chr,
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "StartHour",
+                                        v_values = start_hour)
 
-# find the path to the file we want to modify code
-file_i_need <- find_file_with_code(files = files_chr, code_to_find)
+file_i_need <- util_find_file_with_code(files = files_chr,
+                                        code_to_find = 9142301,
+                                        option_replace = TRUE,
+                                        v_settings = "UseMAFilter",
+                                        v_values = use_ma)
 
-
-# Read file with template from the folder templates
-V_settings <- read_lines(file_i_need)
-
-# Find the elements containing "StartHour" and "UseMAFilter"
-index <- grep("StartHour=", V_settings)
-index1 <- grep("UseMAFilter=", V_settings)
-
-# Replace the value after = sign with the new value found earlier
-
-if (length(index) > 0) {
-  V_settings[index] <- gsub("=\\d+", paste0("=", start_hour), V_settings[index])
-}
-
-if (length(index) > 0) {
-  V_settings[index1] <- gsub("UseMAFilter=(TRUE|FALSE|true|false)",
-                                paste0("UseMAFilter=", use_ma), V_settings[index1])
-}
-
-# Write file back
-# test: write_lines(DF_presets, file.path(path_T1_P, 'Falcon_D_new.set'))
-write_lines(V_settings, file_i_need)
 
 
 # Erase files from the tester\files folder which was eventually used earlier
@@ -273,6 +210,22 @@ if (file.exists(file3)) { file.remove(file3)}
 result <- shell(paste("cmd.exe /c", shQuote(path_cmd)), intern = TRUE)
 
 print(result)
+
+writeLines(result, file.path(path_user, "log.txt"))  # Log output for debugging
+
+# alternative way:
+# Starting terminals with parameters using *.ini files:
+#  start "1" "%PATH_T1_T%\terminal.exe" /portable "%PATH_DSS_Repo%\AutoLaunchMT4\prod_T1.ini"
+
+#start "3" "%PATH_T3_T%\terminal.exe" /portable "%PATH_DSS_Repo%\AutoLaunchMT4\prod_T3.ini"
+
+# path_bat_script1 <- "C:\\Program Files (x86)\\FxPro - Terminal1\\terminal.exe /portable C:\\Users\\technik\\Documents\\GitHub\\AutoLaunchMT4\\prod_T1.ini"
+# path_bat_script3 <- "C:\\Program Files (x86)\\FxPro - Terminal3\\terminal.exe /portable C:\\Users\\technik\\Documents\\GitHub\\AutoLaunchMT4\\prod_T3.ini"
+# 
+# system(sprintf('start "" "%s"', path_bat_script1), wait = FALSE, intern = TRUE)
+# system(sprintf('start "" "%s"', path_bat_script3), wait = FALSE, intern = TRUE)
+
+
 
 #calculate total time difference in seconds
 time_end_M60 <- Sys.time()
